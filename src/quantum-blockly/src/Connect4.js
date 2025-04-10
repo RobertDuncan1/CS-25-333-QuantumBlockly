@@ -129,9 +129,9 @@ const Connect4 = ({ quboCode, log }) => {
           if (var2 === null && var1 < 7) {  // Only use the first 7 variables for columns
             // Convert negative weights to positive by taking absolute value
             columnWeights[var1] = Math.abs(quboData.qubo[key]);
-            if(Math.abs(quboData.qubo[key]) > 9) {
+            /*if(Math.abs(quboData.qubo[key]) > 9) {
               columnWeights[var1] = 9;
-            }
+            }*/
           } else if (var1 < 7 && var2 < 7) {
             // This is an interaction term between columns
             if (!interactions[var1]) interactions[var1] = {};
@@ -202,7 +202,7 @@ const Connect4 = ({ quboCode, log }) => {
   // Create a visual representation of Connect4 board with weights
   const createConnect4Visual = (weights, board) => {
     let visual = "   Connect4 Column Weights:\n";
-    visual += "   ┌───┬───┬───┬───┬───┬───┬───┐\n";
+    visual += "   ┌────┬────┬────┬────┬────┬────┬────┐\n";
     
     // Show weights in top row
     visual += "   │";
@@ -211,7 +211,7 @@ const Connect4 = ({ quboCode, log }) => {
       visual += ` ${weight} │`;
     }
     visual += "\n";
-    visual += "   └───┴───┴───┴───┴───┴───┴───┘\n";
+    visual += "   └────┴────┴────┴────┴────┴────┴────┘\n";
     
     // Show a simplified board representation (just a few rows)
     /*for (let row = 0; row < 3; row++) {

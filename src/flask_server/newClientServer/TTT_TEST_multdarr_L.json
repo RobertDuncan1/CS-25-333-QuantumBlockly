@@ -1,0 +1,23 @@
+{
+    "variables": {
+      "q": {
+        "type": "Array",
+        "shape": [3, 3],
+        "vartype": "Binary"
+      }
+    },
+    "Constraints": [
+      {
+        "lhs": "q_0_1 + q_0_2 + q_1_1 + q_1_2",
+        "comparison": "=",
+        "rhs": 0
+      },
+      {
+        "lhs": "q_0_0 + q_1_0 + q_2_0 + q_2_1 + q_2_2",
+        "comparison": "=",
+        "rhs": 1
+      }
+    ],
+    "Objective": "q_2_0 + 2 * q_2_1 + q_1_0"
+  }
+  

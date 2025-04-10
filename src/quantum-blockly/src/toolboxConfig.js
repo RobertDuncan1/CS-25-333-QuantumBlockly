@@ -336,6 +336,18 @@ export const toolboxConfig = {
               shadow: { type: "math_number", fields: { NUM: 1 } }
             }
           }
+        },
+
+        // --- Gamestate ---
+        {
+          kind: "label",
+          text: "Gamestate"
+        },
+        
+        { 
+          kind: "block", 
+          type: "pyqubo_gamestate",
+          
         }
       ]
     },

@@ -1,0 +1,23 @@
+{
+    "variables": {
+      "s": {
+        "type": "Array",
+        "shape": 9,
+        "vartype": "Spin"
+      }
+    },
+    "Constraints": [
+      {
+        "lhs": "(s_0 + 1)/2 + (s_1 + 1)/2 + (s_2 + 1)/2 + (s_3 + 1)/2 + (s_4 + 1)/2 + (s_5 + 1)/2 + (s_6 + 1)/2 + (s_7 + 1)/2 + (s_8 + 1)/2",
+        "comparison": "=",
+        "rhs": 1
+      },
+      {
+        "lhs": "(s_4 + 1)/2",
+        "comparison": "=",
+        "rhs": 0
+      }
+    ],
+    "Objective": "(s_0 + 1)/2 + 2 * (s_3 + 1)/2 + (s_8 + 1)/2"
+  }
+  

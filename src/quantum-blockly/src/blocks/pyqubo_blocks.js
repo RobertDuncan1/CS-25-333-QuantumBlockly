@@ -511,6 +511,27 @@ Blockly.Blocks['pyqubo_result_display'] = {
   }
 };
 
+Blockly.Blocks['pyqubo_gamestate'] = {
+  init: function() {
+    this.jsonInit({
+      "type": "pyqubo_gamestate",
+      "message0": "Create gamestate variable %1",
+      "args0": [
+        {
+          "type": "field_input",
+          "name": "NAME",
+          "text": "x"
+        }
+      ],
+      "previousStatement": null,
+      "nextStatement": null,
+      "colour": 230,
+      "tooltip": "Define a PyQUBO gamestate",
+      "helpUrl": ""
+    });
+  }
+};
+
 export default {
   blocks: [
     'pyqubo_variable',
@@ -529,6 +550,7 @@ export default {
     'pyqubo_model',
     'pyqubo_function',
     'variable_to_expression',
-    'pyqubo_result_display'
+    'pyqubo_result_display',
+    'pyqubo_gamestate'
   ]
 };

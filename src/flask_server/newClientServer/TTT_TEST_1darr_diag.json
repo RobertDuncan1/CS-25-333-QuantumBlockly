@@ -1,0 +1,23 @@
+{
+    "variables": {
+      "x": {
+        "type": "Array",
+        "shape": 9,
+        "vartype": "Binary"
+      }
+    },
+    "Constraints": [
+      {
+        "lhs": "x_1 + x_3 + x_5 + x_7",
+        "comparison": "=",
+        "rhs": 0
+      },
+      {
+        "lhs": "x_0 + x_2 + x_4 + x_6 + x_8",
+        "comparison": "=",
+        "rhs": 1
+      }
+    ],
+    "Objective": "x_4 + x_0 + x_2 + x_6 + x_8"
+  }
+  

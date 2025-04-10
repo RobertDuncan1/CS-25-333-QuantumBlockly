@@ -561,3 +561,12 @@ javascriptGenerator.forBlock['pyqubo_result_display'] = function(block) {
   
   return code;
 };
+
+// New block for PyQUBO gamestate declaration
+javascriptGenerator.forBlock['pyqubo_gamestate'] = function (block, generator) {
+  var name = block.getFieldValue('NAME');
+  
+  var code = `variables["${name}"] = { "type": "Gamestate" };\n`;
+  
+  return code;
+};

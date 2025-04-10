@@ -44,6 +44,8 @@ def parse_variables(variable_data):
                         variables[label] = constructor(label)
             else:
                 return jsonify({"error": f"Invalid array shape: {shape}"}), 400
+        elif var_type == "Gamestate":
+            variables[var_name] = Binary(var_name) #change this
 
         else:
             return jsonify({"error": f"Unsupported variable type: {var_type}"}), 400
