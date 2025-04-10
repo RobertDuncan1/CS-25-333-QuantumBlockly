@@ -124,11 +124,14 @@ const Connect4 = ({ quboCode, log }) => {
         const matches = key.match(/\('x(\d+)'(?:, 'x(\d+)')?\)/);
         if (matches) {
           const var1 = parseInt(matches[1]);
-          const var2 = matches[2] ? parseInt(matches[2]) : null;
+          const var2 = null;//matches[2] ? parseInt(matches[2]) : null;
           
           if (var2 === null && var1 < 7) {  // Only use the first 7 variables for columns
             // Convert negative weights to positive by taking absolute value
             columnWeights[var1] = Math.abs(quboData.qubo[key]);
+            if(Math.abs(quboData.qubo[key]) > 9) {
+              columnWeights[var1] = 9;
+            }
           } else if (var1 < 7 && var2 < 7) {
             // This is an interaction term between columns
             if (!interactions[var1]) interactions[var1] = {};
@@ -208,10 +211,10 @@ const Connect4 = ({ quboCode, log }) => {
       visual += ` ${weight} │`;
     }
     visual += "\n";
-    visual += "   ├───┼───┼───┼───┼───┼───┼───┤\n";
+    visual += "   └───┴───┴───┴───┴───┴───┴───┘\n";
     
     // Show a simplified board representation (just a few rows)
-    for (let row = 0; row < 3; row++) {
+    /*for (let row = 0; row < 3; row++) {
       visual += "   │";
       for (let col = 0; col < 7; col++) {
         const cellIdx = row * 7 + col;
@@ -225,7 +228,7 @@ const Connect4 = ({ quboCode, log }) => {
       } else {
         visual += "   └───┴───┴───┴───┴───┴───┴───┘\n";
       }
-    }
+    }*/
     
     return visual;
   };
