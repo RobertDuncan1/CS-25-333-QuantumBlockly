@@ -215,6 +215,68 @@ function BlocklyComponent({ mainCodeHandlingFunction, log}) {
     }
   };
 
+// Function to display QUBO solution
+// Function to display QUBO solution
+function displayQuboSolution(quboResponse, logFunction) {
+  if (quboResponse && quboResponse.sample) {
+    // Format the solution as a list instead of comma-separated string
+    let solutionStr = ">\n";
+    
+    // Extract variables with value 1 (selected cells)
+    const selectedCells = [];
+    
+    // Extract all meaningful variables
+    Object.entries(quboResponse.sample).forEach(([key, value]) => {
+      // Add each variable to the solution string in list format
+      solutionStr += `  ${key} = ${value}\n`;
+      
+      // Track selected cells (value = 1)
+      if (value === 1) {
+        // Extract just the number from keys like "x4"
+        const index = key.match(/\d+/);
+        if (index) {
+          selectedCells.push(index[0]);
+        }
+      }
+    });
+    
+    // Log the solution
+    console.log("QUBO Solution:", solutionStr);
+    
+    // Add solution to the log with nice formatting
+    logFunction("> Solved Sample:\n" + solutionStr + "\n");
+    
+    // Display the recommended move
+    if (selectedCells.length > 0) {
+      logFunction(`> Best move: position ${selectedCells[0]}\n`);
+      
+      // Add more analysis based on the board and the move
+      analyzeMoveQuality(selectedCells[0], logFunction);
+    } else {
+      logFunction("> No valid move found in solution\n\n");
+    }
+  } else {
+    logFunction("> No QUBO solution available\n\n");
+  }
+}
+
+  // Function to analyze move quality
+  function analyzeMoveQuality(cellIndex, logFunction) {
+    // Define the board positions by strategic importance
+    const centerPosition = 4;
+    const cornerPositions = [0, 2, 6, 8];
+    const edgePositions = [1, 3, 5, 7];
+    
+    // Analyze the selected position
+    if (cellIndex == centerPosition) {
+      logFunction("> Position Analysis: Center position (strongest strategic choice)\n\n");
+    } else if (cornerPositions.includes(parseInt(cellIndex))) {
+      logFunction("> Position Analysis: Corner position (strong strategic choice)\n\n");
+    } else if (edgePositions.includes(parseInt(cellIndex))) {
+      logFunction("> Position Analysis: Edge position (moderate strategic choice)\n\n");
+    }
+  }
+
   // SaveAsBlockButton component
   function SaveAsBlockButton({ workspace }) {
     const handleSaveAsBlock = () => {
@@ -317,8 +379,17 @@ function BlocklyComponent({ mainCodeHandlingFunction, log}) {
           console.log("✅ Server Response:", result);
           log(`> Server Response: ${JSON.stringify(result, null, 2)}\n\n`);
 
+          // Store the QUBO response globally
+          window.quboResponse = result;
+
           if (!response.ok) {
             throw new Error(`Server Error: ${result.error}`);
+          }
+
+          // Check if display block is used in the code
+          if (code.includes("Display QUBO results")) {
+            // Display the QUBO results
+            displayQuboSolution(result, log);
           }
 
         } catch (error) {

@@ -23,8 +23,30 @@ def parse_variables(variable_data):
             elif var_info["type"] == "Spin":
                 variables[var_name] = Spin(var_name)
             elif var_info["type"] == "Array":
-                size = var_info.get("size", 10)
-                variables[var_name] = [Binary(f"{var_name}[{i}]") for i in range(size)]
+                # Handle new array format with shape and vartype
+                vartype = var_info.get("vartype", "Binary")
+                shape = var_info.get("shape", [10])
+                
+                # Create array based on shape (1D or 2D)
+                if isinstance(shape, list) and len(shape) > 1:
+                    # 2D array
+                    rows, cols = shape[0], shape[1]
+                    if vartype == "Binary":
+                        variables[var_name] = [[Binary(f"{var_name}[{i}][{j}]") for j in range(cols)] for i in range(rows)]
+                    else:  # Spin
+                        variables[var_name] = [[Spin(f"{var_name}[{i}][{j}]") for j in range(cols)] for i in range(rows)]
+                else:
+                    # 1D array
+                    size = shape[0] if isinstance(shape, list) else shape
+                    if vartype == "Binary":
+                        variables[var_name] = [Binary(f"{var_name}[{i}]") for i in range(size)]
+                    else:  # Spin
+                        variables[var_name] = [Spin(f"{var_name}[{i}]") for i in range(size)]
+            elif var_info["type"] == "Integer":
+                # Handle Integer type with bounds
+                lower_bound = var_info.get("lower_bound", 0)
+                upper_bound = var_info.get("upper_bound", 10)
+                variables[var_name] = Integer(var_name, lower_bound, upper_bound)
             else:
                 print(f"Unsupported variable type: {var_info['type']}")
                 return None
@@ -120,12 +142,12 @@ def calculate():
                         'details': 'Each variable must include a "type" field'
                     }), 400
                 
-                if var_def["type"] not in ["Binary", "Spin"]:
+                if var_def["type"] not in ["Binary", "Spin", "Array"]:
                     print(f"Error: Unsupported variable type: {var_def['type']}")
                     return jsonify({
                         'error': f'Unsupported variable type: {var_def["type"]}',
                         'status': 'error',
-                        'details': 'Variables must have type "Binary" or "Spin"'
+                        'details': 'Variables must have type "Binary" or "Spin" or "Array"'
                     }), 400
             
             # Parse quantum variables

@@ -1,6 +1,7 @@
 export const toolboxConfig = {
   kind: "categoryToolbox",
   contents: [
+    // Core Programming Categories
     {
       kind: "category",
       name: "Logic",
@@ -63,7 +64,6 @@ export const toolboxConfig = {
       contents: [
         { kind: "block", type: "text" },
         { kind: "block", type: "text_multiline" },
-        // Add the new raw text block
         { 
           kind: "block", 
           type: "raw_text",
@@ -117,6 +117,8 @@ export const toolboxConfig = {
       ]
     },
     { kind: "sep" },
+    
+    // Variable and Function Categories
     {
       kind: "category",
       name: "Variables",
@@ -129,15 +131,32 @@ export const toolboxConfig = {
       categorystyle: "procedure_category",
       custom: "PROCEDURE"
     },
+    
+    // PyQUBO Category - Organized by subcategories
     {
       kind: "category",
       name: "PyQUBO",
       colour: "#4169E1", // Royal Blue
       contents: [
+        // --- Model Structure ---
+        {
+          kind: "label",
+          text: "Model Structure"
+        },
         // Main model container
         { kind: "block", type: "pyqubo_model" },
+        // Result display block
+        { 
+          kind: "block", 
+          type: "pyqubo_result_display" 
+        },
         
-        // Variable declarations
+        // --- Variable Definitions ---
+        {
+          kind: "label",
+          text: "Variable Definitions"
+        },
+        // Single variable
         { 
           kind: "block", 
           type: "pyqubo_variable",
@@ -145,26 +164,86 @@ export const toolboxConfig = {
             PROPERTIES: {
               block: {
                 type: "pyqubo_var_property",
-                fields: { PROPERTY: "size" },
+                fields: { PROPERTY: "lower_bound" },
                 inputs: {
                   VALUE: {
-                    shadow: { type: "math_number", fields: { NUM: 10 } }
+                    shadow: { type: "math_number", fields: { NUM: 0 } }
                   }
                 }
               }
             }
           }
         },
+        // Array variable
+        { 
+          kind: "block", 
+          type: "pyqubo_array_variable",
+          fields: { 
+            NAME: "x",
+            VARTYPE: "Binary"
+          },
+          inputs: {
+            SHAPE: {
+              shadow: { 
+                type: "math_number", 
+                fields: { NUM: 9 }  // Default to 9 for TicTacToe
+              }
+            }
+          }
+        },
+        // 2D Array shape input block - NEW ADDITION
+        { 
+          kind: "block", 
+          type: "array_shape_input",
+          fields: {
+            ROWS: 3,
+            COLS: 3
+          }
+        },
+        // Array shape definition block
+        { 
+          kind: "block", 
+          type: "pyqubo_array_shape",
+          fields: { DIMENSION: "1D" },
+          inputs: {
+            DIMENSIONS: {
+              block: {
+                type: "pyqubo_array_dimension",
+                inputs: {
+                  SIZE: {
+                    shadow: { type: "math_number", fields: { NUM: 9 } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        // Array dimension block
+        { 
+          kind: "block", 
+          type: "pyqubo_array_dimension",
+          inputs: {
+            SIZE: {
+              shadow: { type: "math_number", fields: { NUM: 9 } }
+            }
+          }
+        },
+        // Variable property block
         { 
           kind: "block", 
           type: "pyqubo_var_property",
           inputs: {
             VALUE: {
-              shadow: { type: "math_number", fields: { NUM: 10 } }
+              shadow: { type: "math_number", fields: { NUM: 0 } }
             }
           }
         },
         
+        // --- Constraints and Objective ---
+        {
+          kind: "label",
+          text: "Constraints & Objective"
+        },
         // Constraints
         { 
           kind: "block", 
@@ -178,21 +257,27 @@ export const toolboxConfig = {
             }
           }
         },
-        
-        // Variable to Expression Bridge Block (NEW)
+        // Objective
         { 
           kind: "block", 
-          type: "variable_to_expression"
+          type: "pyqubo_objective",
+          inputs: {
+            EXPRESSION: {
+              shadow: { type: "raw_text", fields: { TEXT: "x0 + x1" } }
+            }
+          }
         },
         
-        // Objective without auto-included raw text block
-        { 
-          kind: "block", 
-          type: "pyqubo_objective"
+        // --- Variable References ---
+        {
+          kind: "label",
+          text: "Variable References"
         },
-
         // Variable references
         { kind: "block", type: "pyqubo_var_reference" },
+        // Bridge block for standard variables
+        { kind: "block", type: "variable_to_expression" },
+        // Array reference blocks
         { 
           kind: "block", 
           type: "pyqubo_array_reference",
@@ -215,7 +300,12 @@ export const toolboxConfig = {
           }
         },
         
-        // Array operations
+        // --- Array Operations ---
+        {
+          kind: "label",
+          text: "Array Operations"
+        },
+        // Array sum
         { 
           kind: "block", 
           type: "pyqubo_array_sum",
@@ -224,11 +314,16 @@ export const toolboxConfig = {
               shadow: { type: "math_number", fields: { NUM: 0 } }
             },
             TO: {
-              shadow: { type: "math_number", fields: { NUM: 9 } }
+              shadow: { type: "math_number", fields: { NUM: 8 } }
             }
           }
         },
         
+        // --- Expressions ---
+        {
+          kind: "label",
+          text: "Expression Building"
+        },
         // Expression building
         { 
           kind: "block", 
@@ -244,6 +339,8 @@ export const toolboxConfig = {
         }
       ]
     },
+    
+    // Saved Blocks Category
     {
       kind: "category",
       name: "Saved Blocks",

@@ -12,6 +12,8 @@ Main Component that contains the main content section of the app
 function MainComponent() {
   const [code, setCode] = useState(''); //setting up a state for the generated code
   const [log, setLog] = useState('');
+  const [logVisible, setLogVisible] = useState(true);
+  const [codeVisible, setCodeVisible] = useState(true);
 
   const codeHandler = (code) => { //this code handler will be passed into the BlocklyComponent, and will set the state of the code for the main component
     setCode(code);
@@ -47,17 +49,6 @@ function MainComponent() {
     }
   };
   
-  // Game container styling to ensure consistent appearance
-  const gameContainerStyle = {
-    width: '100%',
-    height: '50%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    overflow: 'visible' // Change from 'auto' to 'visible'
-  };
-
   // Helper to get current game name
   const getCurrentGameName = () => {
     if (game === 0) return "tic";
@@ -89,12 +80,26 @@ function MainComponent() {
       
       <div className="main">
         <div className="vertical-div">
-          <BlocklyComponent mainCodeHandlingFunction={codeHandler} log={logHandler}/>
-          <DisplayComponent heading="Generated Code" text={code} bColor='black'/>
+          <div className={`blockly-container ${!codeVisible ? 'expanded' : ''}`}>
+            <BlocklyComponent mainCodeHandlingFunction={codeHandler} log={logHandler}/>
+          </div>
+          
+          <div className="code-container">
+            <button 
+              onClick={() => setCodeVisible(prev => !prev)} 
+              className="toggle-log-btn"
+            >
+              {codeVisible ? 'Hide Code' : 'Show Code'}
+            </button>
+
+            {codeVisible && (
+              <DisplayComponent heading="Generated Code" text={code} bColor='black'/>
+            )}
+          </div>
         </div>
         
         <div className="vertical-div">
-          <div style={gameContainerStyle} className="game-container">
+          <div className={`game-container ${!logVisible ? 'expanded' : ''}`}>
             {game === 0 && (
               <TicTacToe quboCode={code} log={logHandler}/>
             )}
@@ -110,7 +115,16 @@ function MainComponent() {
           </div>
           
           <div className="log-container">
-            <DisplayComponent heading="Log" text={log} bColor='black' />
+            <button 
+              onClick={() => setLogVisible(prev => !prev)} 
+              className="toggle-log-btn"
+            >
+              {logVisible ? 'Hide Log' : 'Show Log'}
+            </button>
+
+            {logVisible && (
+              <DisplayComponent heading="Log" text={log} bColor='black' />
+            )}
           </div>
         </div>
       </div>

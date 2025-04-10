@@ -114,33 +114,17 @@ const TicTacToe = ({ quboCode, log }) => {
       return "No QUBO data received from server";
     }
     
-    // Extract diagonal terms (variable weights)
-    const variableWeights = {};
-    const interactions = {};
-    
-    Object.keys(quboData.qubo).forEach(key => {
-      if (key.includes("('x") && key.includes("')")) {
-        // Parse the variables from the key
-        const matches = key.match(/\('x(\d+)'(?:, 'x(\d+)')?\)/);
-        if (matches) {
-          const var1 = parseInt(matches[1]);
-          const var2 = matches[2] ? parseInt(matches[2]) : null;
-          
-          if (var2 === null) {
-            // This is a diagonal term (single variable)
-            // Convert negative weights to positive by taking absolute value
-            variableWeights[var1] = Math.abs(quboData.qubo[key]);
-          } else {
-            // This is an interaction term
-            if (!interactions[var1]) interactions[var1] = {};
-            interactions[var1][var2] = quboData.qubo[key];
-          }
-        }
-      }
-    });
+    // Use the extractCellWeights helper to get weights
+    const variableWeights = extractCellWeights(quboData, null, currentBoard);
     
     // Format the output
     let output = "📊 QUBO Analysis:\n";
+    
+    // If no weights were found, add a warning
+    if (Object.keys(variableWeights).length === 0) {
+      output += "\n⚠️ Warning: No valid cell weights could be extracted from the QUBO response.\n";
+      return output;
+    }
     
     // If server provided explanations, use them
     if (quboData.explanation) {
@@ -171,40 +155,29 @@ const TicTacToe = ({ quboCode, log }) => {
     // Variable weights section
     output += "\n🎯 Cell Weights (higher values are better):\n";
     
-    // Sort from highest to lowest value
-    const sortedVars = Object.keys(availableCellWeights)
-      .map(cell => ({ cell: parseInt(cell), weight: availableCellWeights[cell] }))
-      .sort((a, b) => b.weight - a.weight); // Sort from highest to lowest
-    
-    sortedVars.forEach(({ cell, weight }, index) => {
-      // Add star to highest value (best) option
-      output += `   Cell ${cell}: ${weight.toFixed(1)}${index === 0 ? " ⭐" : ""}\n`;
-    });
-    
-    // Add visual board representation if we have a current board
-    if (currentBoard) {
-      output += "\n" + createBoardVisual(availableCellWeights, currentBoard) + "\n";
+    // Check if any weights were found
+    if (Object.keys(availableCellWeights).length > 0) {
+      // Sort from highest to lowest value
+      const sortedVars = Object.keys(availableCellWeights)
+        .map(cell => ({ cell: parseInt(cell), weight: availableCellWeights[cell] }))
+        .sort((a, b) => b.weight - a.weight); // Sort from highest to lowest
+      
+      sortedVars.forEach(({ cell, weight }, index) => {
+        // Add star to highest value (best) option
+        output += `   Cell ${cell}: ${weight.toFixed(1)}${index === 0 ? " ⭐" : ""}\n`;
+      });
     }
     
-    // Summarize the QUBO logic
+    // Add visual board representation with weights
+    output += "\n" + createBoardVisual(variableWeights, currentBoard) + "\n";
+    
+    // Summarize the QUBO logic - removed the line about interaction terms
     output += "\n🧠 QUBO Strategy Explanation:\n";
     output += "   • The algorithm assigns weights to each empty cell\n";
     output += "   • Higher weight values are preferred (maximization problem)\n";
-    output += "   • Interaction terms prevent selecting multiple cells\n";
     
     if (quboData.explanation && quboData.explanation.problem_type) {
       output += `   • Problem type: ${quboData.explanation.problem_type.replace(/_/g, " ")}\n`;
-    }
-    
-    output += "\n🎲 Optimal Move:\n";
-    if (sortedVars.length > 0) {
-      // Get the cell with the highest weight (first in sorted array)
-      const bestCell = sortedVars[0].cell;
-      const bestWeight = sortedVars[0].weight;
-      
-      output += `   → Cell ${bestCell} (${explainCellPosition(bestCell)}) with weight ${bestWeight.toFixed(1)}\n`;
-    } else {
-      output += "   → No optimal move found\n";
     }
     
     return output;
@@ -227,41 +200,131 @@ const TicTacToe = ({ quboCode, log }) => {
     return positions[cell] || `cell ${cell}`;
   };
 
-  // Create a visual board representation with weights
-  const createBoardVisual = (weights, board) => {
-    let visual = "   Board Weights:\n";
-    visual += "   ┌───┬───┬───┐\n";
-    
-    for (let row = 0; row < 3; row++) {
-      visual += "   │";
-      for (let col = 0; col < 3; col++) {
-        const cellIdx = row * 3 + col;
-        const cellContent = board[cellIdx];
+// Create a visual board representation with weights
+const createBoardVisual = (weights, board) => {
+  let visual = "   Board Weights:\n";
+  visual += "   ┌─────┬─────┬─────┐\n";
+  
+  for (let row = 0; row < 3; row++) {
+    visual += "   │";
+    for (let col = 0; col < 3; col++) {
+      const cellIdx = row * 3 + col;
+      const cellContent = board[cellIdx];
+      
+      // Fill the cell with formatted content
+      let cellDisplay = "";
+      
+      if (cellContent !== '') {
+        // For X and O, center with spaces on both sides
+        cellDisplay = `  ${cellContent}   `;
+      } else if (weights[cellIdx] !== undefined) {
+        const weightStr = Math.round(weights[cellIdx]).toString();
         
-        if (cellContent) {
-          // Cell is already occupied
-          visual += ` ${cellContent} │`;
-        } else if (weights[cellIdx] !== undefined) {
-          // Show weight (simplified)
-          const weightStr = Math.abs(weights[cellIdx]).toFixed(0);
-          // Ensure we have proper padding
-          visual += weightStr.length === 1 ? ` ${weightStr} │` : `${weightStr} │`;
-        } else {
-          // Empty cell
-          visual += "   │";
+        // Center the weight with appropriate spacing
+        switch (weightStr.length) {
+          case 1: // Single digit: "  5   "
+            cellDisplay = `  ${weightStr}   `;
+            break;
+          case 2: // Two digits: "  15  "
+            cellDisplay = `  ${weightStr}  `;
+            break;
+          case 3: // Three digits: " 375 "
+            cellDisplay = ` ${weightStr} `;
+            break;
+          default: // Four or more digits, fit as best as possible
+            if (weightStr.length === 4) {
+              cellDisplay = `${weightStr} `;
+            } else {
+              cellDisplay = weightStr.substring(0, 5);
+            }
+            break;
+        }
+      } else {
+        // Empty cell
+        cellDisplay = "     ";
+      }
+      
+      // Ensure cell is always exactly 5 characters wide
+      while (cellDisplay.length < 5) {
+        cellDisplay += " ";
+      }
+      if (cellDisplay.length > 5) {
+        cellDisplay = cellDisplay.substring(0, 5);
+      }
+      
+      visual += `${cellDisplay}│`;
+    }
+    visual += "\n";
+    
+    if (row < 2) {
+      visual += "   ├─────┼─────┼─────┤\n";
+    } else {
+      visual += "   └─────┴─────┴─────┘\n";
+    }
+  }
+  
+  return visual;
+};
+
+// Helper function to extract cell weights from QUBO response
+const extractCellWeights = (responseData, availableCells, currentBoard) => {
+  const cellWeights = {};
+
+  // Process diagonal terms from QUBO matrix
+  if (Object.keys(responseData.qubo || {}).length > 0) {
+    Object.keys(responseData.qubo).forEach((key) => {
+      try {
+        // Look for diagonal terms like ('x0', 'x0')
+        const diagMatch = key.match(/\('([a-zA-Z_]+)(\d+)', '([a-zA-Z_]+)(\d+)'\)/);
+        if (diagMatch && diagMatch[2] === diagMatch[4]) {
+          const cellIdx = parseInt(diagMatch[2]);
+          
+          if (!isNaN(cellIdx) && (!availableCells || availableCells.includes(cellIdx)) &&
+              (!currentBoard || currentBoard[cellIdx] === '')) {
+            // Use absolute value of diagonal terms (they're typically negative in QUBO)
+            cellWeights[cellIdx] = Math.abs(responseData.qubo[key]);
+          }
+          return;
+        }
+        
+        // Also try to match single variable patterns like ('x0')
+        const singleMatch = key.match(/\('([a-zA-Z_]+)(\d+)'\)/);
+        if (singleMatch && singleMatch[2]) {
+          const cellIdx = parseInt(singleMatch[2]);
+          
+          if (!isNaN(cellIdx) && (!availableCells || availableCells.includes(cellIdx)) &&
+              (!currentBoard || currentBoard[cellIdx] === '')) {
+            // Store absolute value of weight
+            cellWeights[cellIdx] = Math.abs(responseData.qubo[key]);
+          }
+        }
+      } catch (parseError) {
+        console.error("Error parsing variable name:", parseError, "Key:", key);
+      }
+    });
+  }
+
+  // If sample contains a selected cell (value=1), boost its weight slightly
+  if (responseData.sample && Object.keys(cellWeights).length > 0) {
+    Object.entries(responseData.sample).forEach(([key, value]) => {
+      if (value === 1) {
+        const match = key.match(/\d+/);
+        if (match) {
+          const cellIdx = parseInt(match[0]);
+          if (!isNaN(cellIdx) && cellWeights[cellIdx] && 
+              (!availableCells || availableCells.includes(cellIdx)) && 
+              (!currentBoard || currentBoard[cellIdx] === '')) {
+            // Boost the weight of the selected cell slightly (by 1)
+            cellWeights[cellIdx] += 1;
+          }
         }
       }
-      visual += "\n";
-      
-      if (row < 2) {
-        visual += "   ├───┼───┼───┤\n";
-      } else {
-        visual += "   └───┴───┴───┘\n";
-      }
-    }
-    
-    return visual;
-  };
+    });
+  }
+
+  // No fallback - if no weights were extracted, return empty object
+  return cellWeights;
+};
 
   // Setup effect for player turns
   useEffect(() => {
@@ -396,33 +459,12 @@ const TicTacToe = ({ quboCode, log }) => {
       log(`> Received quantum solution\n\n`);
       log(formatQuboForLog(responseData, cells) + "\n\n");
   
-      // Extract cell weights from response
-      const cellWeights = {};
+      // Extract cell weights from response using our helper function
+      const cellWeights = extractCellWeights(responseData, availableCells, cells);
   
-      // Parse weights from response
-      if (Object.keys(responseData.qubo || {}).length > 0) {
-        Object.keys(responseData.qubo).forEach((key) => {
-          if (key.includes("('x") && key.includes("')")) {
-            try {
-              // More robust parsing
-              const match = key.match(/\('x(\d+)'/);
-              if (match && match[1]) {
-                const cellIdx = parseInt(match[1]);
-                if (!isNaN(cellIdx) && availableCells.includes(cellIdx)) {
-                  // Store absolute value of weight (convert negative to positive)
-                  cellWeights[cellIdx] = Math.abs(responseData.qubo[key]);
-                }
-              }
-            } catch (parseError) {
-              console.error("Error parsing cell index:", parseError);
-            }
-          }
-        });
-      }
-  
-      // If no weights were extracted, this is an error
+      // If no weights were extracted, this is an error that should stop the game
       if (Object.keys(cellWeights).length === 0) {
-        throw new Error("No valid moves could be determined from the QUBO model");
+        throw new Error("No valid weights could be extracted from the QUBO model. Cannot determine optimal move.");
       }
   
       log(`> Analyzed ${Object.keys(cellWeights).length} possible moves\n\n`);

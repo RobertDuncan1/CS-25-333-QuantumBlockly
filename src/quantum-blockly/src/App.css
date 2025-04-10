@@ -23,24 +23,50 @@ h1 {
   width: 50%;
 }
 
-/* Game container changes - ensure game is fully visible */
-.game-container {
-  height: auto; /* Change from 100% to auto to avoid fixed height */
-  min-height: 500px; /* Give it enough space for the game */
+/* Blockly container - with transition for smooth resizing */
+.blockly-container {
+  height: 60%;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 20px; /* Add space between game and log */
+  margin-bottom: 20px;
+  transition: height 0.3s ease;
+}
+
+/* Code container styling */
+.code-container {
+  width: 95%; /* Slightly reduced to prevent overflow */
+  height: auto;
+  margin-top: 20px;
+  position: relative;
+}
+
+/* Game container changes - ensure game is fully visible with transition */
+.game-container {
+  height: 60%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  transition: height 0.3s ease;
 }
 
 /* Log container - position below the game */
 .log-container {
-  width: 90%;
-  height: auto; /* Allow it to take required space */
-  margin-top: 20px; /* Ensure space after the game */
-  position: relative; /* Ensure it stays in the document flow */
+  width: 95%; /* Slightly reduced to prevent overflow */
+  height: auto;
+  margin-top: 20px;
+  position: relative;
+}
+
+/* Expanded container classes when logs are hidden */
+.blockly-container.expanded, 
+.game-container.expanded {
+  height: 85%; /* Expand to take most of the vertical space */
 }
 
 /* Center game setup menus */
@@ -80,6 +106,22 @@ h1 {
   gap: 8px;
 }
 
+.toggle-log-btn {
+  background-color: #1e90ff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-log-btn:hover {
+  background-color: #0b75d1;
+}
+
 /* For mobile screens, stack the layout */
 @media (max-width: 1200px) {
   .main {
@@ -92,11 +134,19 @@ h1 {
     margin: 0 auto;
   }
   
+  .blockly-container,
   .game-container {
-    min-height: auto; /* Let it adjust to content on mobile */
+    height: auto;
+    min-height: 300px;
     margin-bottom: 15px;
   }
   
+  .blockly-container.expanded,
+  .game-container.expanded {
+    min-height: 450px;
+  }
+  
+  .code-container,
   .log-container {
     width: 95%;
   }

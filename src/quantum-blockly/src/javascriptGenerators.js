@@ -169,15 +169,19 @@ javascriptGenerator.forBlock['pyqubo_variable'] = function (block, generator) {
 };
 
 // New block for PyQUBO constraint
-javascriptGenerator.forBlock['pyqubo_constraint'] = function (block, generator) {
-  var lhs = generator.valueToCode(block, 'LHS', javascript.Order.ATOMIC);
+javascriptGenerator.forBlock['pyqubo_constraint'] = function(block, generator) {
+  var lhs = generator.valueToCode(block, 'LHS', javascriptGenerator.ORDER_ATOMIC);
   var operator = block.getFieldValue('OPERATOR');
-  var rhs = generator.valueToCode(block, 'RHS', javascript.Order.ATOMIC);
+  var rhs = generator.valueToCode(block, 'RHS', javascriptGenerator.ORDER_ATOMIC);
   
+  // Remove any quotes from the LHS to ensure it's properly formatted
+  lhs = lhs.replace(/^["'](.*)["']$/, '$1');
+  
+  // Format the constraint correctly
   var code = `constraints.push({
-      "lhs": "${lhs}",
-      "comparison": "${operator}",
-      "rhs": ${rhs}
+    "lhs": "${lhs}",
+    "comparison": "${operator}",
+    "rhs": ${rhs}
   });\n`;
   
   return code;
@@ -185,19 +189,26 @@ javascriptGenerator.forBlock['pyqubo_constraint'] = function (block, generator) 
 
 // Updated PyQUBO Objective Block Generator to work with raw text
 javascriptGenerator.forBlock['pyqubo_objective'] = function(block) {
-    var goal = block.getFieldValue('GOAL');
-    // Get expression without quotes
-    var expression = javascriptGenerator.valueToCode(block, 'EXPRESSION', javascriptGenerator.ORDER_ATOMIC);
-    
-    // For maximize, we negate the objective since PyQUBO minimizes by default
-    const prefix = goal === 'maximize' ? '-(' : '';
-    const suffix = goal === 'maximize' ? ')' : '';
-    
-    // Do not add extra quotes around the expression
-    var code = `objective = "${prefix}${expression}${suffix}";\n`;
-    
-    return code;
-  };
+  var goal = block.getFieldValue('GOAL');
+  // Get expression without quotes
+  var expression = javascriptGenerator.valueToCode(block, 'EXPRESSION', javascriptGenerator.ORDER_ATOMIC);
+  
+  // Remove any quotes around the expression
+  expression = expression.replace(/^["'](.*)["']$/, '$1');
+  
+  // Fix missing multiplication operators between numbers and variables
+  // This regex will find numbers directly followed by variable names and insert a '*' between them
+  expression = expression.replace(/(\d+)([a-zA-Z_]+)/g, '$1*$2');
+  
+  // For maximize, we negate the objective since PyQUBO minimizes by default
+  const prefix = goal === 'maximize' ? '-(' : '';
+  const suffix = goal === 'maximize' ? ')' : '';
+  
+  // Do not add extra quotes around the expression
+  var code = `objective = "${prefix}${expression}${suffix}";\n`;
+  
+  return code;
+};
 
 // Improved function block generator
 javascriptGenerator.forBlock['function'] = function (block, generator) {
@@ -279,7 +290,25 @@ javascriptGenerator.forBlock['pyqubo_2d_array_reference'] = function(block) {
   const row = javascriptGenerator.valueToCode(block, 'ROW', javascriptGenerator.ORDER_ATOMIC);
   const col = javascriptGenerator.valueToCode(block, 'COL', javascriptGenerator.ORDER_ATOMIC);
   
-  return [`${name}[${row}][${col}]`, javascriptGenerator.ORDER_MEMBER];
+  // For static values, calculate the index directly
+  if (!isNaN(parseInt(row)) && !isNaN(parseInt(col))) {
+    const rowNum = parseInt(row);
+    const colNum = parseInt(col);
+    const index = rowNum * 3 + colNum; // Assuming 3x3 grid for TicTacToe
+    return [`${name}${index}`, javascriptGenerator.ORDER_ATOMIC];
+  }
+  
+  // For dynamic values, generate a calculation
+  return [`${name} + ((${row} * 3) + ${col})`, javascriptGenerator.ORDER_ADDITION];
+};
+
+// Modify the array_shape_input generator to return a special format that indicates this is a 2D array
+javascriptGenerator.forBlock['array_shape_input'] = function(block) {
+  const rows = block.getFieldValue('ROWS');
+  const cols = block.getFieldValue('COLS');
+  
+  // Return a special format to indicate this is a 2D array
+  return [`[${rows}, ${cols}]`, javascriptGenerator.ORDER_ATOMIC];
 };
 
 // Array Sum Block Generator
@@ -345,4 +374,190 @@ javascriptGenerator.forBlock['raw_text'] = function(block) {
     return [text, javascriptGenerator.ORDER_ATOMIC];
   }
   return [text, javascriptGenerator.ORDER_ATOMIC];
+};
+
+// Generator for pyqubo_array_variable
+javascriptGenerator.forBlock['pyqubo_array_variable'] = function(block) {
+  const name = block.getFieldValue('NAME');
+  const vartype = block.getFieldValue('VARTYPE');
+  const shape = javascriptGenerator.valueToCode(block, 'SHAPE', javascriptGenerator.ORDER_ATOMIC) || '9';
+  
+  // Check if the shape is a 2D array format [rows, cols]
+  const is2DArray = shape.startsWith('[') && shape.includes(',');
+  
+  let code = '';
+  
+  if (is2DArray) {
+    // Parse the 2D array parameters
+    const match = shape.match(/\[(\d+),\s*(\d+)\]/);
+    if (match) {
+      const rows = parseInt(match[1]);
+      const cols = parseInt(match[2]);
+      
+      // Generate variables for a 2D grid with sequential numbering
+      let counter = 0;
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          code += `variables["${name}${counter}"] = { "type": "${vartype}" };\n`;
+          counter++;
+        }
+      }
+    } else {
+      // Fallback to 9 variables for TicTacToe
+      for (let i = 0; i < 9; i++) {
+        code += `variables["${name}${i}"] = { "type": "${vartype}" };\n`;
+      }
+    }
+  } else {
+    // This is a 1D array with numeric size
+    const count = parseInt(shape);
+    if (!isNaN(count)) {
+      for (let i = 0; i < count; i++) {
+        code += `variables["${name}${i}"] = { "type": "${vartype}" };\n`;
+      }
+    } else {
+      // Fallback to 9 variables for TicTacToe
+      for (let i = 0; i < 9; i++) {
+        code += `variables["${name}${i}"] = { "type": "${vartype}" };\n`;
+      }
+    }
+  }
+  
+  return code;
+};
+
+// Generator for pyqubo_array_shape
+javascriptGenerator.forBlock['pyqubo_array_shape'] = function(block) {
+  const dimension = block.getFieldValue('DIMENSION');
+  const dimensionsCode = javascriptGenerator.statementToCode(block, 'DIMENSIONS');
+  
+  // Parse the dimensions from the statement code
+  const dimensions = dimensionsCode.split('\n')
+    .filter(line => line.trim())
+    .map(line => {
+      // Extract numbers from the dimension statement
+      const match = line.match(/(\d+)/);
+      return match ? parseInt(match[1]) : 10;
+    });
+  
+  if (dimension === '1D') {
+    return [`[${dimensions[0] || 10}]`, javascriptGenerator.ORDER_ATOMIC];
+  } else { // 2D
+    return [`[${dimensions[0] || 3}, ${dimensions[1] || 3}]`, javascriptGenerator.ORDER_ATOMIC];
+  }
+};
+
+// Add this code to your javascriptGenerators.js file
+
+// Generator for the new array_shape_input block
+javascriptGenerator.forBlock['array_shape_input'] = function(block) {
+  const rows = block.getFieldValue('ROWS');
+  const cols = block.getFieldValue('COLS');
+  
+  // Return a string representation of the array
+  return [`[${rows}, ${cols}]`, javascriptGenerator.ORDER_ATOMIC];
+};
+
+// Update the pyqubo_array_variable generator to handle both 1D and 2D arrays
+javascriptGenerator.forBlock['pyqubo_array_variable'] = function(block) {
+  const name = block.getFieldValue('NAME');
+  const vartype = block.getFieldValue('VARTYPE');
+  const shape = javascriptGenerator.valueToCode(block, 'SHAPE', javascriptGenerator.ORDER_ATOMIC) || '9';
+  
+  // Check if the shape is a 2D array format [rows, cols]
+  const is2DArray = shape.startsWith('[') && shape.includes(',');
+  
+  let code = '';
+  
+  if (is2DArray) {
+    // Parse the 2D array parameters
+    const match = shape.match(/\[(\d+),\s*(\d+)\]/);
+    if (match) {
+      const rows = parseInt(match[1]);
+      const cols = parseInt(match[2]);
+      
+      // Generate variables for a 2D grid
+      for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+          code += `variables["${name}_${i}_${j}"] = { "type": "${vartype}" };\n`;
+        }
+      }
+    } else {
+      // Fallback to 3x3 grid if parsing fails
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          code += `variables["${name}_${i}_${j}"] = { "type": "${vartype}" };\n`;
+        }
+      }
+    }
+  } else {
+    // This is a 1D array with numeric size
+    const count = parseInt(shape);
+    if (!isNaN(count)) {
+      for (let i = 0; i < count; i++) {
+        code += `variables["${name}${i}"] = { "type": "${vartype}" };\n`;
+      }
+    } else {
+      // Fallback to 9 variables for TicTacToe
+      for (let i = 0; i < 9; i++) {
+        code += `variables["${name}${i}"] = { "type": "${vartype}" };\n`;
+      }
+    }
+  }
+  
+  return code;
+};
+
+// Generator for pyqubo_array_dimension
+javascriptGenerator.forBlock['pyqubo_array_dimension'] = function(block) {
+  const size = javascriptGenerator.valueToCode(block, 'SIZE', javascriptGenerator.ORDER_ATOMIC) || '10';
+  return `${size}\n`;
+};
+
+// Updated generator for pyqubo_array_reference to work with new array format
+javascriptGenerator.forBlock['pyqubo_array_reference'] = function(block) {
+  const name = block.getFieldValue('NAME');
+  const index = javascriptGenerator.valueToCode(block, 'INDEX', javascriptGenerator.ORDER_ATOMIC);
+  
+  return [`${name}[${index}]`, javascriptGenerator.ORDER_MEMBER];
+};
+
+// Updated generator for pyqubo_2d_array_reference to work with new array format
+javascriptGenerator.forBlock['pyqubo_2d_array_reference'] = function(block) {
+  const name = block.getFieldValue('NAME');
+  const row = javascriptGenerator.valueToCode(block, 'ROW', javascriptGenerator.ORDER_ATOMIC);
+  const col = javascriptGenerator.valueToCode(block, 'COL', javascriptGenerator.ORDER_ATOMIC);
+  
+  return [`${name}[${row}][${col}]`, javascriptGenerator.ORDER_MEMBER];
+};
+
+// Update the array sum generator to work with the new array format
+javascriptGenerator.forBlock['pyqubo_array_sum'] = function(block) {
+  const name = block.getFieldValue('NAME');
+  const from = javascriptGenerator.valueToCode(block, 'FROM', javascriptGenerator.ORDER_ATOMIC) || '0';
+  const to = javascriptGenerator.valueToCode(block, 'TO', javascriptGenerator.ORDER_ATOMIC) || '0';
+  
+  // Create a string representing the sum for PyQUBO processing
+  let sumTerms = [];
+  // We can't generate the actual loop here since we don't know the values,
+  // so we'll create a representation that can be parsed on the server
+  sumTerms.push(`${name}[${from}]`);
+  if (from !== to) {
+    sumTerms.push('...');
+    sumTerms.push(`${name}[${to}]`);
+  }
+  
+  return [sumTerms.join(' + '), javascriptGenerator.ORDER_ATOMIC];
+};
+
+// Generator for the QUBO result display block
+javascriptGenerator.forBlock['pyqubo_result_display'] = function(block) {
+  // This block now only adds a marker comment in the generated code
+  // The actual display logic will be handled in BlocklyComponent.js
+  const code = `
+  // Display QUBO results placeholder
+  // Actual display is handled in the BlocklyComponent
+  `;
+  
+  return code;
 };
