@@ -5,6 +5,7 @@ import BlocklyComponent from './BlocklyComponent';
 import DisplayComponent from './DisplayComponent';
 import Connect4 from './Connect4';
 import TicTacToe from './TicTacToe';
+import Mancala from './Mancala copy';
 
 /*
 Main Component that contains the main content section of the app
@@ -107,10 +108,7 @@ function MainComponent() {
               <Connect4 quboCode={code} log={logHandler}/>
             )}
             {game === 2 && (
-              <div className="container">
-                <h2>Mancala Game</h2>
-                <p>Coming soon...</p>
-              </div>
+              <Mancala quboCode={code} log={logHandler}/>
             )}
           </div>
           
